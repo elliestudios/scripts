@@ -1,4 +1,4 @@
-import * as path from "https://deno.land/std@0.204.0/path/mod.ts";
+import { resolve } from "https://deno.land/std@0.204.0/path/resolve.ts";
 
 import { compileAndOutput } from "./compile-ts.ts";
 import { svgToReact } from "./utils.ts";
@@ -35,7 +35,7 @@ async function makeAssetComponent(assetName: string, svgSource: string) {
 
       export function ${componentName}(props: ${componentName}Props): JSX.Element;
     `,
-    path.resolve(outputDirectory, assetName),
+    resolve(outputDirectory, assetName),
   );
 }
 
@@ -64,7 +64,7 @@ export async function makeReactComponents({
 
       export function getColor(mode: string, color: string): string | undefined;
     `,
-    path.resolve(outputDirectory, "colors"),
+    resolve(outputDirectory, "colors"),
   );
 
   for (const [fileName, svgSource] of Object.entries(assets)) {

@@ -1,5 +1,5 @@
-import { fromPNGs as pngsToIco } from "https://deno.land/x/ico@1.0.0/mod.ts";
-import * as path from "https://deno.land/std@0.204.0/path/mod.ts";
+import { fromPNGs as pngsToIco } from "https://esm.sh/gh/dotellie/ICO@7b4ac8e0f9/Source/mod.ts";
+import { resolve } from "https://deno.land/std@0.204.0/path/resolve.ts";
 
 import { compileAndOutput } from "./compile-ts.ts";
 import { makePngs, makeQuickWriteFn } from "./utils.ts";
@@ -10,10 +10,16 @@ const ts = String.raw;
 export async function makeFavicon(svgSource: string) {
   const pngs = makePngs(svgSource, [32, 180, 192, 512]);
 
-  const w = makeQuickWriteFn(path.resolve(outputDirectory, "public"));
+  const w = makeQuickWriteFn(resolve(outputDirectory, "public"));
+
+  const faviconBytes = await pngsToIco([pngs[32]]);
+
+  if (faviconBytes == null) {
+    throw new Error("Failed to create favicon");
+  }
 
   await w("icon.svg", svgSource);
-  await w("favicon.ico", await pngsToIco([pngs[32]]));
+  await w("favicon.ico", faviconBytes);
   await w("apple_touch_icon.png", pngs[180]);
   await w("192.png", pngs[192]);
   await w("512.png", pngs[512]);
@@ -62,6 +68,6 @@ export async function makeFavicon(svgSource: string) {
 
       export const faviconMetadata: Metadata;
     `,
-    path.resolve(outputDirectory, "favicon-metadata"),
+    resolve(outputDirectory, "favicon-metadata"),
   );
 }

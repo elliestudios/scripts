@@ -1,6 +1,6 @@
 import { Resvg } from "npm:@resvg/resvg-js";
 import type { Buffer } from "node:buffer";
-import * as path from "https://deno.land/std@0.204.0/path/mod.ts";
+import { resolve } from "https://deno.land/std@0.204.0/path/resolve.ts";
 
 import { outputtedFiles } from "./outputted-files.ts";
 
@@ -19,9 +19,9 @@ export function getColor(colors: unknown, mode: string, color: string) {
   const c = colors as Record<string, Record<string, string>>;
   return (
     c[mode]?.[color] ??
-    c.default?.[color] ??
-    c.light?.[color] ??
-    c.dark?.[color]
+      c.default?.[color] ??
+      c.light?.[color] ??
+      c.dark?.[color]
   );
 }
 
@@ -55,8 +55,9 @@ export function svgToReact(svg: string): {
       // Replace attributes with camelCase
       /([a-z-]+)=/g,
       (_, attribute) =>
-        attribute.replace(/-([a-z])/g, (_: unknown, letter: string) =>
-          letter.toUpperCase(),
+        attribute.replace(
+          /-([a-z])/g,
+          (_: unknown, letter: string) => letter.toUpperCase(),
         ) + "=",
     )
     .replace(/="var\(--(.+?)\)"/g, (_, varName) => {
@@ -109,13 +110,12 @@ export function makePngs(source: string, sizes: number[]) {
  * @param dir The directory to write to
  */
 export function makeQuickWriteFn(dir: string) {
-  return async (file: string, data: string | Buffer) => {
-    const outPath = path.resolve(dir, file);
+  return async (file: string, data: string | Buffer | Uint8Array) => {
+    const outPath = resolve(dir, file);
 
-    const bytes =
-      typeof data === "string"
-        ? new TextEncoder().encode(data)
-        : new Uint8Array(data);
+    const bytes = typeof data === "string"
+      ? new TextEncoder().encode(data)
+      : new Uint8Array(data);
 
     return await Deno.writeFile(outPath, bytes).then((r) => {
       outputtedFiles.push(outPath);

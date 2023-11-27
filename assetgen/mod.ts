@@ -1,4 +1,4 @@
-import * as path from "https://deno.land/std@0.204.0/path/mod.ts";
+import { resolve } from "https://deno.land/std@0.204.0/path/resolve.ts";
 import { Command } from "https://deno.land/x/cliffy@v1.0.0-rc.3/command/mod.ts";
 
 import { makeTsIndex } from "./compile-ts.ts";
@@ -31,9 +31,11 @@ function assertSources(inputFiles: Record<string, string>) {
     const colors = detectColors(contents);
     assert(
       colors.length === 0,
-      `${fileName} cannot contain raw colors - use variables instead. (var(--color))\nFound: ${colors.join(
-        ", ",
-      )}`,
+      `${fileName} cannot contain raw colors - use variables instead. (var(--color))\nFound: ${
+        colors.join(
+          ", ",
+        )
+      }`,
     );
   }
 }
@@ -54,15 +56,16 @@ async function generate(inputFiles: Record<string, string>) {
 
   const colors: unknown = JSON.parse(inputFiles["colors.json"]);
 
-  const coloredFavicon = transformSvgVariables(favicon, (variable) =>
-    getColor(colors, "default", variable),
+  const coloredFavicon = transformSvgVariables(
+    favicon,
+    (variable) => getColor(colors, "default", variable),
   );
 
-  await Deno.mkdir(path.resolve(outputDirectory, "public"), {
+  await Deno.mkdir(resolve(outputDirectory, "public"), {
     recursive: true,
   });
   await Deno.writeTextFile(
-    path.resolve(outputDirectory, "favicon.svg"),
+    resolve(outputDirectory, "favicon.svg"),
     coloredFavicon,
   );
 
@@ -87,7 +90,7 @@ async function readInputFiles(
   const input: Record<string, string> = {};
 
   for (const file of inputFiles) {
-    input[file] = await Deno.readTextFile(path.resolve(inputDirectory, file));
+    input[file] = await Deno.readTextFile(resolve(inputDirectory, file));
   }
 
   return input;
@@ -113,7 +116,7 @@ await new Command()
     default: "build",
   })
   .action(async (options) => {
-    setDirectories(path.resolve(options.input), path.resolve(options.output));
+    setDirectories(resolve(options.input), resolve(options.output));
 
     const sourceFiles = (await Array.fromAsync(Deno.readDir(inputDirectory)))
       .map((entry) => entry.name)
@@ -126,7 +129,7 @@ await new Command()
       console.log("Assets built. Watching for changes...");
 
       const watcher = Deno.watchFs(
-        inputFiles.map((file) => path.resolve(inputDirectory, file)),
+        inputFiles.map((file) => resolve(inputDirectory, file)),
       );
       for await (const _ of watcher) {
         try {
@@ -143,7 +146,7 @@ await new Command()
     if (options.listFiles) {
       // Output list of all files
       outputtedFiles.sort((a, b) =>
-        a.localeCompare(b, undefined, { numeric: true, sensitivity: "base" }),
+        a.localeCompare(b, undefined, { numeric: true, sensitivity: "base" })
       );
       for (const file of outputtedFiles) {
         console.log("==> " + file);
