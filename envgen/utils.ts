@@ -19,6 +19,9 @@ export function extractEnvironmentsVariablesAndServices(ast: EnvAst) {
       case "info-service":
         symbol.services?.forEach((env) => services.add(env));
         break;
+      case "info-reflect":
+        if (symbol.service != null) services.add(symbol.service);
+        break;
       case "attribute":
         variables.add(symbol.name);
         break;
@@ -99,6 +102,15 @@ export function convertToEnvVars(ast: EnvAst): EnvVarObject[] {
         type = "string";
       }
 
+      const valueDependencies = symbol.value
+        .filter((value) => value.type === "variable")
+        .map((value) => ("variable" in value ? value.variable : null))
+        .filter((v): v is string => v != null);
+      const defaultDependencies = defaultValue
+        ?.filter((value) => value.type === "variable")
+        .map((value) => ("variable" in value ? value.variable : null))
+        .filter((v): v is string => v != null) ?? [];
+
       const variable = {
         name: symbol.name,
         value: symbol.value,
@@ -110,36 +122,12 @@ export function convertToEnvVars(ast: EnvAst): EnvVarObject[] {
           alwaysAsk,
           askEnvs,
           services,
-          dependencies: symbol.value
-            .filter((value) => value.type === "variable")
-            .map((value) => ("variable" in value ? value.variable : null))
-            .filter((v): v is string => v != null),
+          dependencies: [...valueDependencies, ...defaultDependencies],
+          reflections,
         },
       } satisfies EnvVarObject;
 
       currentInfos = [];
-
-      for (const reflection of reflections) {
-        const reflectionVariable = {
-          ...variable,
-          name: reflection.prefix + "_" + symbol.name,
-          value: [
-            {
-              type: "variable",
-              variable: symbol.name,
-            },
-          ],
-          info: {
-            ...variable.info,
-            services:
-              reflection.service != null
-                ? [reflection.service]
-                : variable.info.services,
-            dependencies: [variable.name],
-          },
-        } satisfies EnvVarObject;
-        envVars.push(reflectionVariable);
-      }
 
       envVars.push(variable);
     }
@@ -149,17 +137,60 @@ export function convertToEnvVars(ast: EnvAst): EnvVarObject[] {
 }
 
 export type EnvVarObject = {
+  /**
+   * Name of the variable
+   */
   name: string;
+  /**
+   * Current value of the variable
+   *
+   * This may change during the resolution process
+   */
   value: EnvValue;
+  /**
+   * Type of the variable
+   */
   type: EnvType;
+  /**
+   * Meta information about the variable, from #@ lines
+   */
   info: {
+    /**
+     * Environments where this variable is defined
+     */
     envs: string[];
+    /**
+     * Default value of the variable
+     */
     defaultValue?: EnvValue;
+    /**
+     * Default value of the variable for each environment
+     */
     deafultByEnv: Record<string, EnvValue>;
+    /**
+     * Whether to always ask for the value of this variable
+     */
     alwaysAsk: boolean;
+    /**
+     * Environments where to ask for the value of this variable
+     */
     askEnvs: string[];
+    /**
+     * Services where this variable is defined
+     */
     services: string[];
+    /**
+     * Variables that this variable depends on
+     *
+     * This is internal information corresponding to variables
+     * that immediately need to be resolved for the value of
+     * this variable to be fully resolved
+     */
     dependencies: string[];
+    /**
+     * Reflections of this variable
+     */
+    reflections?: Array<{ service?: string; prefix: string }>;
   };
 };
 

@@ -1,0 +1,32 @@
+#@ string
+#@ reflect(service = web): NEXT_PUBLIC
+#@ reflect(service = cms): PAYLOAD_PUBLIC
+#@ env: dev, prod
+#@ ask
+SITE_NAME="The sites name"
+
+#@ secret
+#@ service: cms
+#@ env: dev, prod
+PAYLOAD_SECRET="The Payload CMS secret"
+
+#@ port
+#@ service: cms
+#@ env: dev
+CMS_PORT="The port the CMS will use"
+
+#@ url
+#@ service: cms
+#@ default: http://localhost:${CMS_PORT}
+#@ reflect(service = web): NEXT_PUBLIC
+#@ env: dev, prod
+#@ ask: prod
+CMS_URL="The base URL for the CMS"
+
+#@ url
+#@ default: http://localhost:3000
+#@ reflect(service = web): NEXT_PUBLIC
+#@ reflect(service = cms): PAYLOAD_PUBLIC
+#@ env: dev, prod
+#@ ask: prod
+WEB_URL="The base URL for the web"

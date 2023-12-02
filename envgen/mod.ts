@@ -1,17 +1,16 @@
-import { generatePassword } from "https://deno.land/x/pass@1.2.3/mod.ts";
 import { Command } from "https://deno.land/x/cliffy@v1.0.0-rc.3/command/mod.ts";
-import { Input } from "https://deno.land/x/cliffy@v1.0.0-rc.3/prompt/mod.ts";
-import { getAvailablePort } from "https://deno.land/x/port@1.0.0/mod.ts";
+import { isPresent } from "https://esm.sh/ts-extras@0.11.0";
 
-import { parser } from "./parser.ts";
+import { EnvValue, parser, parseValueWithVariables } from "./parser.ts";
 import {
-  extractEnvironmentsVariablesAndServices,
   assertValidReferences,
   convertToEnvVars,
-  renderEnvValue,
   EnvVarObject,
+  extractEnvironmentsVariablesAndServices,
+  renderEnvValue,
 } from "./utils.ts";
-import { resolveTree } from "./tree.ts";
+import { loadSecrets, writeSecrets } from "./secrets.ts";
+import { resolveDependencies } from "./resolve.ts";
 
 await new Command()
   .name("envgen")
@@ -49,10 +48,7 @@ await new Command()
       await Deno.writeTextFile(options.secretFile, "{}");
       console.warn("Created new secrets file - THIS MUST NOT BE COMMITED!");
     }
-    const secrets: Record<string, Record<string, string>> = JSON.parse(
-      await Deno.readTextFile(options.secretFile),
-    );
-    secrets[options.env] ??= {};
+    await loadSecrets(options.secretFile, options.env);
 
     const ast = parser(await Deno.readTextFile(input));
 
@@ -71,173 +67,102 @@ await new Command()
 
     const allEnvVars = convertToEnvVars(ast);
 
-    async function resolveVariableValue(
-      envVar: EnvVarObject,
-    ): Promise<EnvVarObject> {
-      function generateDependencies(envVar: EnvVarObject): EnvVarObject {
-        const dependencies = new Set([
-          ...envVar.value
-            .filter(
-              (value): value is { type: "variable"; variable: string } =>
-                value.type === "variable",
-            )
-            .map((value) => value.variable),
-          ...envVar.info.dependencies,
-        ]);
-
-        return {
-          ...envVar,
-          info: {
-            ...envVar.info,
-            dependencies: [...dependencies],
-          },
-        };
-      }
-
-      if (envVar.info.dependencies.length > 0) {
-        return envVar;
-      }
-
-      if (secrets[options.env]?.[envVar.name] != null) {
-        return {
-          ...envVar,
-          value: [{ type: "string", value: secrets[options.env][envVar.name] }],
-        };
-      }
-
-      if (envVar.info.askEnvs.includes(options.env) || envVar.info.alwaysAsk) {
-        const defaultValue =
-          envVar.info.deafultByEnv[options.env] ?? envVar.info.defaultValue;
-        const value = await Input.prompt({
-          message: `Enter value for ${envVar.name}:`,
-          default:
-            defaultValue != null ? renderEnvValue(defaultValue) : undefined,
-        });
-
-        secrets[options.env][envVar.name] = value;
-
-        return { ...envVar, value: [{ type: "string", value }] };
-      }
-
-      if (envVar.info.deafultByEnv[options.env] != null) {
-        return generateDependencies({
-          ...envVar,
-          value: envVar.info.deafultByEnv[options.env],
-        });
-      }
-
-      if (envVar.info.defaultValue != null) {
-        return generateDependencies({
-          ...envVar,
-          value: envVar.info.defaultValue,
-        });
-      }
-
-      if (envVar.type === "port") {
-        const value = await getAvailablePort();
-        if (value == null) {
-          throw new Error("Could not find available port");
-        }
-        secrets[options.env][envVar.name] = value.toString();
-
-        return {
-          ...envVar,
-          value: [{ type: "string", value: value.toString() }],
-        };
-      }
-
-      if (envVar.type === "secret") {
-        const value = generatePassword(64, true, false);
-        secrets[options.env][envVar.name] = value;
-        return { ...envVar, value: [{ type: "string", value }] };
-      }
-
-      return envVar;
-    }
-
-    const unresolvedVars = allEnvVars.filter((envVar) => {
+    function matchesEnvAndService(envVar: EnvVarObject) {
+      const services = new Set([
+        ...envVar.info.services,
+        ...envVar.info.reflections?.map((r) => r.service).filter(isPresent) ??
+          [],
+      ]);
       if (envVar.info.envs != null && !envVar.info.envs.includes(options.env)) {
         return false;
       } else if (
         options.service != null &&
-        envVar.info.services != null &&
-        !envVar.info.services.includes(options.service)
+        !services.has(options.service)
       ) {
         return false;
       } else {
         return true;
       }
-    });
-    const envVars = [];
-    for (const envVar of unresolvedVars) {
-      const resolved = await resolveVariableValue(envVar);
-      envVars.push(resolved);
     }
 
-    const dependencyTree = envVars.reduce<Record<string, string[]>>(
-      (tree, envVar) => {
-        tree[envVar.name] = envVar.info.dependencies;
-        return tree;
-      },
+    const unresolvedVars = allEnvVars.filter((envVar) =>
+      matchesEnvAndService(envVar)
+    );
+    const envVars = await resolveDependencies(
+      allEnvVars,
       {},
+      unresolvedVars.map((v) => v.name),
+      options.env,
     );
 
-    let addedDependency = true;
-    while (addedDependency) {
-      addedDependency = false;
-      for (const dependencies of Object.values(dependencyTree)) {
-        for (const dependency of dependencies) {
-          const dependentVar = allEnvVars.find(
-            (envVar) => envVar.name === dependency,
-          );
+    const varsToRender: Array<[string, string]> = [];
+    for (const envVar of allEnvVars) {
+      const reflectedVars: EnvVarObject[] =
+        envVar.info.reflections?.map((reflection) => {
+          return {
+            ...envVar,
+            name: `${reflection.prefix}_${envVar.name}`,
+            value: [{
+              type: "variable",
+              variable: envVar.name,
+            }],
+            info: {
+              ...envVar.info,
+              services: reflection.service != null
+                ? [reflection.service]
+                : [...envVar.info.services],
+              reflections: undefined,
+              dependencies: [],
+            },
+          };
+        }) ?? [];
 
-          if (dependentVar == null) {
-            throw new Error(`Missing dependency: ${dependency}`);
-          }
+      const resolvedValue = envVars.resolved[envVar.name];
 
-          dependencyTree[dependentVar.name] = dependentVar.info.dependencies;
+      const modifiedEnvVar: EnvVarObject = {
+        ...envVar,
+        value: resolvedValue != null
+          ? parseValueWithVariables(envVars.resolved[envVar.name])
+          : [],
+        info: {
+          ...envVar.info,
+          reflections: undefined,
+        },
+      };
+
+      for (const toRender of [modifiedEnvVar, ...reflectedVars]) {
+        if (matchesEnvAndService(toRender)) {
+          varsToRender.push([
+            toRender.name,
+            renderEnvValue(
+              toRender.value,
+            ),
+          ]);
         }
       }
     }
 
-    const dependencyChain = resolveTree(dependencyTree);
-
-    const variablesResolved: Record<string, string> = {};
-    const noSubstituteVariableNames = new Set<string>(
-      envVars.map((envVar) => envVar.name),
-    );
-    for (const dependency of dependencyChain) {
-      const envVar =
-        envVars.find((envVar) => envVar.name === dependency) ??
-        allEnvVars.find((envVar) => envVar.name === dependency);
-      if (envVar == null) {
-        throw new Error(`Missing dependency: ${dependency}`);
-      }
-
-      const resolved = await resolveVariableValue(envVar);
-      variablesResolved[dependency] = renderEnvValue(
-        resolved.value,
-        (variable) => {
-          if (noSubstituteVariableNames.has(variable)) {
-            return null;
-          } else {
-            return variablesResolved[variable];
-          }
-        },
-      );
+    const existingVars = new Set(varsToRender.map(([name]) => name));
+    function renderVar(value: EnvValue): string {
+      return renderEnvValue(value, (variable) => {
+        if (existingVars.has(variable)) {
+          return null;
+        } else {
+          const value = parseValueWithVariables(envVars.resolved[variable]);
+          return renderVar(value);
+        }
+      });
     }
-
-    const finalVars = envVars.map(
-      (envVar) => [envVar.name, variablesResolved[envVar.name]] as const,
-    );
+    const finalVars = varsToRender.map(([name, value]) => {
+      const envValue = parseValueWithVariables(value);
+      const newValue = renderVar(envValue);
+      return [name, newValue];
+    });
 
     console.log(
       finalVars.map(([name, value]) => `${name}=${value}`).join("\n"),
     );
 
-    await Deno.writeTextFile(
-      options.secretFile,
-      JSON.stringify(secrets, null, 2),
-    );
+    await writeSecrets(options.secretFile, options.env);
   })
   .parse(Deno.args);
