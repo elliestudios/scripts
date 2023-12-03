@@ -1,3 +1,4 @@
 build
 .secrets.json
 .DS_Store
+npm

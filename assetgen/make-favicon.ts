@@ -1,4 +1,4 @@
-import { fromPNGs as pngsToIco } from "https://esm.sh/gh/dotellie/ICO@7b4ac8e0f9/Source/mod.ts";
+import { fromPNGs as pngsToIco } from "https://raw.githubusercontent.com/dotellie/ICO/7b4ac8e0f9c58681d786a222bacd58cc9758b129/Source/mod.ts";
 import { resolve } from "https://deno.land/std@0.204.0/path/resolve.ts";
 
 import { compileAndOutput } from "./compile-ts.ts";
