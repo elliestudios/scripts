@@ -1,5 +1,6 @@
 import { fromPNGs as pngsToIco } from "https://raw.githubusercontent.com/dotellie/ICO/7b4ac8e0f9c58681d786a222bacd58cc9758b129/Source/mod.ts";
 import { resolve } from "https://deno.land/std@0.204.0/path/resolve.ts";
+import prettier from "npm:prettier";
 
 import { compileAndOutput } from "./compile-ts.ts";
 import { makePngs, makeQuickWriteFn } from "./utils.ts";
@@ -25,8 +26,8 @@ export async function makeFavicon(svgSource: string) {
   await w("512.png", pngs[512]);
   await w(
     "manifest.webmanifest",
-    JSON.stringify(
-      {
+    await prettier.format(
+      JSON.stringify({
         icons: [
           {
             src: "/192.png",
@@ -39,9 +40,10 @@ export async function makeFavicon(svgSource: string) {
             type: "image/png",
           },
         ],
+      }),
+      {
+        parser: "json",
       },
-      null,
-      2,
     ),
   );
 

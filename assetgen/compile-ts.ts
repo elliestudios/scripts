@@ -13,7 +13,10 @@ export async function compileAndOutput(
 ) {
   const transpiled = await transpile(source, { jsx: "react" });
   const jsPath = to + ".js";
-  await Deno.writeTextFile(jsPath, transpiled);
+  const formattedCode = await prettier.format(transpiled, {
+    parser: "typescript",
+  });
+  await Deno.writeTextFile(jsPath, formattedCode);
   const declarationsPath = to + ".d.ts";
   const formattedDeclarations = await prettier.format(declarations, {
     parser: "typescript",
