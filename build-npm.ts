@@ -47,7 +47,7 @@ await build({
     const res = await fetch(
       "https://deno.land/x/ts_transpiler@v0.0.2/js/transpiler_bg.wasm",
     );
-    Deno.writeFileSync(
+    await Deno.writeFile(
       "npm/esm/deps/deno.land/x/ts_transpiler@v0.0.2/js/transpiler_bg.wasm",
       new Uint8Array(await res.arrayBuffer()),
     );
