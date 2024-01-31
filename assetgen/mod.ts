@@ -31,11 +31,9 @@ function assertSources(inputFiles: Record<string, string>) {
     const colors = detectColors(contents);
     assert(
       colors.length === 0,
-      `${fileName} cannot contain raw colors - use variables instead. (var(--color))\nFound: ${
-        colors.join(
-          ", ",
-        )
-      }`,
+      `${fileName} cannot contain raw colors - use variables instead. (var(--color))\nFound: ${colors.join(
+        ", ",
+      )}`,
     );
   }
 }
@@ -56,9 +54,8 @@ async function generate(inputFiles: Record<string, string>) {
 
   const colors: unknown = JSON.parse(inputFiles["colors.json"]);
 
-  const coloredFavicon = transformSvgVariables(
-    favicon,
-    (variable) => getColor(colors, "default", variable),
+  const coloredFavicon = transformSvgVariables(favicon, (variable) =>
+    getColor(colors, "default", variable),
   );
 
   await Deno.mkdir(resolve(outputDirectory, "public"), {
@@ -118,9 +115,12 @@ await new Command()
   .action(async (options) => {
     setDirectories(resolve(options.input), resolve(options.output));
 
-    const sourceFiles = (await Array.fromAsync(Deno.readDir(inputDirectory)))
-      .map((entry) => entry.name)
-      .filter(isAsset);
+    const sourceFiles = [];
+    for await (const entry of Deno.readDir(inputDirectory)) {
+      if (isAsset(entry.name)) {
+        sourceFiles.push(entry.name);
+      }
+    }
     const inputFiles = ["colors.json", ...sourceFiles];
 
     await generate(await readInputFiles(inputFiles));
@@ -146,7 +146,7 @@ await new Command()
     if (options.listFiles) {
       // Output list of all files
       outputtedFiles.sort((a, b) =>
-        a.localeCompare(b, undefined, { numeric: true, sensitivity: "base" })
+        a.localeCompare(b, undefined, { numeric: true, sensitivity: "base" }),
       );
       for (const file of outputtedFiles) {
         console.log("==> " + file);

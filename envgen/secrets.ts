@@ -24,7 +24,7 @@ export function setEnv(value: string) {
 export async function loadSecrets(filename: string, env: string) {
   secrets = JSON.parse(
     await Deno.readTextFile(filename),
-  )[env];
+  )[env] ?? {};
 }
 
 export async function writeSecrets(filename: string, env: string) {

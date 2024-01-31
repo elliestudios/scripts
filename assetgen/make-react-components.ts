@@ -18,6 +18,8 @@ async function makeAssetComponent(assetName: string, svgSource: string) {
 
   await compileAndOutput(
     ts`
+      import React from "react";
+
       import { getColor } from "./colors";
 
       export function ${componentName}({ color = "default", ...rest } = {}) {

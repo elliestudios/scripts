@@ -1,4 +1,4 @@
-import { build, emptyDir } from "https://deno.land/x/dnt@0.39.0/mod.ts";
+import { build, emptyDir } from "https://deno.land/x/dnt@0.40.0/mod.ts";
 
 await emptyDir("./npm");
 
@@ -40,9 +40,16 @@ await build({
       url: "https://github.com/elliestudios/scripts/issues",
     },
   },
-  postBuild() {
+  async postBuild() {
     // steps to run after building and before running the tests
     Deno.copyFileSync("LICENSE", "npm/LICENSE");
     Deno.copyFileSync("README.md", "npm/README.md");
+    const res = await fetch(
+      "https://deno.land/x/ts_transpiler@v0.0.2/js/transpiler_bg.wasm",
+    );
+    Deno.writeFileSync(
+      "npm/esm/deps/deno.land/x/ts_transpiler@v0.0.2/js/transpiler_bg.wasm",
+      new Uint8Array(await res.arrayBuffer()),
+    );
   },
 });
