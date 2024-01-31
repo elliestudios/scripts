@@ -1,7 +1,7 @@
 {
   "tasks": {
     "build-npm-package": "deno run -A ./build-npm.ts",
-    "version": "deno run -Ar https://esm.sh/gh/dotellie/version@typescript-file/index.ts",
-    "bump-version": "deno run -A https://esm.sh/gh/dotellie/deno-scripts/bump-version.ts"
+    "version": "deno run -Aqr https://esm.sh/gh/dotellie/version@typescript-file/index.ts",
+    "bump-version": "deno run -Aq https://esm.sh/gh/dotellie/deno-scripts/bump-version.ts"
   }
 }
