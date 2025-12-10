@@ -1,5 +1,5 @@
 import { Input } from "@cliffy/prompt";
-import { getPort } from "@openjs/port-free";
+import getPort from "get-port";
 import PasswordGenerator from "@rabbit-company/password-generator";
 
 import { parseValueWithVariables } from "./parser.ts";
