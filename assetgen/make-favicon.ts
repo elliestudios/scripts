@@ -1,6 +1,6 @@
-import { fromPNGs as pngsToIco } from "https://raw.githubusercontent.com/dotellie/ICO/7b4ac8e0f9c58681d786a222bacd58cc9758b129/Source/mod.ts";
-import { resolve } from "https://deno.land/std@0.204.0/path/resolve.ts";
-import prettier from "npm:prettier";
+import { fromPNGs as pngsToIco } from "ico";
+import { resolve } from "@std/path/resolve";
+import prettier from "prettier";
 
 import { compileAndOutput } from "./compile-ts.ts";
 import { makePngs, makeQuickWriteFn } from "./utils.ts";

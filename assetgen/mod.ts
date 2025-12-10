@@ -1,5 +1,5 @@
-import { resolve } from "https://deno.land/std@0.204.0/path/resolve.ts";
-import { Command } from "https://deno.land/x/cliffy@v1.0.0-rc.3/command/mod.ts";
+import { resolve } from "@std/path/resolve";
+import { Command } from "@cliffy/command";
 
 import { makeTsIndex } from "./compile-ts.ts";
 import { detectColors } from "./detect-color.ts";

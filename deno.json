@@ -3,5 +3,17 @@
     "build-npm-package": "deno run -A ./build-npm.ts",
     "version": "deno run -Aqr https://esm.sh/gh/dotellie/version@typescript-file/index.ts",
     "bump-version": "deno run -Aq https://esm.sh/gh/dotellie/deno-scripts/bump-version.ts"
+  },
+  "imports": {
+    "@cliffy/command": "jsr:@cliffy/command@^1.0.0-rc.8",
+    "@cliffy/prompt": "jsr:@cliffy/prompt@^1.0.0-rc.8",
+    "@openjs/port-free": "jsr:@openjs/port-free@^1.0.0",
+    "@rabbit-company/password-generator": "jsr:@rabbit-company/password-generator@^2.2.0",
+    "@resvg/resvg-js": "npm:@resvg/resvg-js@^2.6.2",
+    "@std/path": "jsr:@std/path@^1.1.3",
+    "prettier": "npm:prettier@^3.7.4",
+    "ts-extras": "npm:ts-extras@^0.16.0",
+    "ts-transpiler": "https://deno.land/x/ts_transpiler@v0.0.2/mod.ts",
+    "ico": "https://raw.githubusercontent.com/dotellie/ICO/7b4ac8e0f9c58681d786a222bacd58cc9758b129/Source/mod.ts"
   }
 }

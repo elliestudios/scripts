@@ -1,5 +1,5 @@
-import { Command } from "https://deno.land/x/cliffy@v1.0.0-rc.3/command/mod.ts";
-import { isPresent } from "https://esm.sh/ts-extras@0.11.0";
+import { Command } from "@cliffy/command";
+import { isPresent } from "ts-extras";
 
 import { EnvValue, parser, parseValueWithVariables } from "./parser.ts";
 import {
@@ -70,15 +70,12 @@ await new Command()
     function matchesEnvAndService(envVar: EnvVarObject) {
       const services = new Set([
         ...envVar.info.services,
-        ...envVar.info.reflections?.map((r) => r.service).filter(isPresent) ??
-          [],
+        ...(envVar.info.reflections?.map((r) => r.service).filter(isPresent) ??
+          []),
       ]);
       if (envVar.info.envs != null && !envVar.info.envs.includes(options.env)) {
         return false;
-      } else if (
-        options.service != null &&
-        !services.has(options.service)
-      ) {
+      } else if (options.service != null && !services.has(options.service)) {
         return false;
       } else {
         return true;
@@ -86,7 +83,7 @@ await new Command()
     }
 
     const unresolvedVars = allEnvVars.filter((envVar) =>
-      matchesEnvAndService(envVar)
+      matchesEnvAndService(envVar),
     );
     const envVars = await resolveDependencies(
       allEnvVars,
@@ -102,15 +99,18 @@ await new Command()
           return {
             ...envVar,
             name: `${reflection.prefix}_${envVar.name}`,
-            value: [{
-              type: "variable",
-              variable: envVar.name,
-            }],
+            value: [
+              {
+                type: "variable",
+                variable: envVar.name,
+              },
+            ],
             info: {
               ...envVar.info,
-              services: reflection.service != null
-                ? [reflection.service]
-                : [...envVar.info.services],
+              services:
+                reflection.service != null
+                  ? [reflection.service]
+                  : [...envVar.info.services],
               reflections: undefined,
               dependencies: [],
             },
@@ -121,9 +121,10 @@ await new Command()
 
       const modifiedEnvVar: EnvVarObject = {
         ...envVar,
-        value: resolvedValue != null
-          ? parseValueWithVariables(envVars.resolved[envVar.name])
-          : [],
+        value:
+          resolvedValue != null
+            ? parseValueWithVariables(envVars.resolved[envVar.name])
+            : [],
         info: {
           ...envVar.info,
           reflections: undefined,
@@ -132,12 +133,7 @@ await new Command()
 
       for (const toRender of [modifiedEnvVar, ...reflectedVars]) {
         if (matchesEnvAndService(toRender)) {
-          varsToRender.push([
-            toRender.name,
-            renderEnvValue(
-              toRender.value,
-            ),
-          ]);
+          varsToRender.push([toRender.name, renderEnvValue(toRender.value)]);
         }
       }
     }

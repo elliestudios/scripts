@@ -1,9 +1,10 @@
-import { Input } from "https://deno.land/x/cliffy@v1.0.0-rc.3/prompt/input.ts";
+import { Input } from "@cliffy/prompt";
+import { getPort } from "@openjs/port-free";
+import PasswordGenerator from "@rabbit-company/password-generator";
+
 import { parseValueWithVariables } from "./parser.ts";
 import { EnvVarObject, renderEnvValue } from "./utils.ts";
 import { getSecret, setSecret } from "./secrets.ts";
-import { getAvailablePort } from "https://deno.land/x/port@1.0.0/mod.ts";
-import generatePassword from "https://deno.land/x/pass@1.2.3/mod.ts";
 
 function generateDependencies(envVar: EnvVarObject): EnvVarObject {
   const dependencies = new Set([
@@ -89,12 +90,9 @@ export async function resolveDefault(
   return await Promise.resolve(envVar);
 }
 
-export async function resolveAsk(
-  envVar: EnvVarObject,
-  env: string,
-) {
-  const defaultValue = envVar.info.deafultByEnv[env] ??
-    envVar.info.defaultValue;
+export async function resolveAsk(envVar: EnvVarObject, env: string) {
+  const defaultValue =
+    envVar.info.deafultByEnv[env] ?? envVar.info.defaultValue;
   const value = await Input.prompt({
     message: `Enter value for ${envVar.name}:`,
     default: defaultValue != null ? renderEnvValue(defaultValue) : undefined,
@@ -108,11 +106,8 @@ export async function resolveAsk(
   });
 }
 
-export async function resolvePort(
-  envVar: EnvVarObject,
-  _env: string,
-) {
-  const value = (await getAvailablePort())?.toString();
+export async function resolvePort(envVar: EnvVarObject, _env: string) {
+  const value = (await getPort())?.toString();
   if (value == null) {
     throw new Error("Could not find available port");
   }
@@ -125,11 +120,8 @@ export async function resolvePort(
   };
 }
 
-export async function resolveSecret(
-  envVar: EnvVarObject,
-  _env: string,
-) {
-  const value = generatePassword(64, true, false);
+export async function resolveSecret(envVar: EnvVarObject, _env: string) {
+  const value = PasswordGenerator.generate(64, true, true, false);
   await setSecret(envVar.name, value);
   return { ...envVar, value: [{ type: "string" as const, value }] };
 }
@@ -151,7 +143,8 @@ export async function resolveAll(
   }
 
   if (
-    envVar.info.deafultByEnv[env] != null || envVar.info.defaultValue != null
+    envVar.info.deafultByEnv[env] != null ||
+    envVar.info.defaultValue != null
   ) {
     return resolveDefault(envVar, env);
   }

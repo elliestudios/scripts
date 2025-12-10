@@ -1,8 +1,8 @@
-import prettier from "npm:prettier";
-import { relative } from "https://deno.land/std@0.204.0/path/relative.ts";
-import { basename } from "https://deno.land/std@0.204.0/path/basename.ts";
-import { resolve } from "https://deno.land/std@0.204.0/path/resolve.ts";
-import { transpile } from "https://deno.land/x/ts_transpiler@v0.0.2/mod.ts";
+import prettier from "prettier";
+import { relative } from "@std/path/relative";
+import { basename } from "@std/path/basename";
+import { resolve } from "@std/path/resolve";
+import { transpile } from "ts-transpiler";
 
 import { outputtedFiles } from "./outputted-files.ts";
 

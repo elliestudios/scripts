@@ -1,4 +1,4 @@
-import { resolve } from "https://deno.land/std@0.204.0/path/resolve.ts";
+import { resolve } from "@std/path/resolve";
 
 import { compileAndOutput } from "./compile-ts.ts";
 import { svgToReact } from "./utils.ts";
