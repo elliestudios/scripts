@@ -7,6 +7,7 @@
   "imports": {
     "@cliffy/command": "jsr:@cliffy/command@^1.0.0-rc.8",
     "@cliffy/prompt": "jsr:@cliffy/prompt@^1.0.0-rc.8",
+    "@deno/dnt": "jsr:@deno/dnt@^0.42.3",
     "@openjs/port-free": "jsr:@openjs/port-free@^1.0.0",
     "@rabbit-company/password-generator": "jsr:@rabbit-company/password-generator@^2.2.0",
     "@resvg/resvg-js": "npm:@resvg/resvg-js@^2.6.2",
